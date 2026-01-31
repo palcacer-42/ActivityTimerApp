@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Privacy-first activity timer. Track your reading, practice, and other activities without data collection.">
+    <title>Activity Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: rgba(30, 30, 50, 0.8);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-primary: #6366f1;
+            --accent-secondary: #818cf8;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            background-image: 
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 20px 0 30px;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        /* Activity Selector */
+        .activity-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .activity-select {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a0a0b0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .activity-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            background: var(--glass);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        /* Timer Display */
+        .timer-display {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .timer-time {
+            font-size: 4rem;
+            font-weight: 300;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+            margin-bottom: 8px;
+        }
+
+        .timer-activity {
+            font-size: 1rem;
+            color: var(--accent-secondary);
+            font-weight: 500;
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-control {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-start {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #16a34a;
+            transform: scale(1.05);
+        }
+
+        .btn-pause {
+            background: var(--warning);
+            color: #1a1a2e;
+        }
+
+        .btn-pause:hover {
+            background: #ca8a04;
+            transform: scale(1.05);
+        }
+
+        .btn-stop {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+
+        .btn-control:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Activity Log */
+        .log-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .log-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .log-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .log-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .log-activity {
+            font-weight: 500;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .log-date {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .log-duration {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--accent-secondary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .log-empty {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 30px 0;
+            font-size: 0.9rem;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .log-header .card-title {
+            margin-bottom: 0;
+        }
+
+        .btn-clear {
+            font-size: 0.75rem;
+            padding: 6px 12px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 360px;
+            transform: scale(0.9);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            font-size: 1.25rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            margin-bottom: 16px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        /* Activity List in Modal */
+        .activity-list {
+            list-style: none;
+            margin-bottom: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .activity-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .activity-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .activity-name {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 1rem;
+            transition: color 0.2s;
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .privacy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: var(--glass);
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .privacy-badge::before {
+            content: "🔒";
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .timer-running .timer-time {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 400px) {
+            .timer-time {
+                font-size: 3rem;
+            }
+            
+            .btn-control {
+                width: 56px;
+                height: 56px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Activity Timer</h1>
+            <p>Track your time, privately</p>
+        </header>
+
+        <!-- Activity Selection -->
+        <div class="card">
+            <div class="card-title">Current Activity</div>
+            <div class="activity-selector">
+                <select class="activity-select" id="activitySelect">
+                    <option value="">Select an activity...</option>
+                </select>
+                <button class="btn btn-icon btn-primary" id="manageBtn" title="Manage Activities">⚙️</button>
+            </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="card" id="timerCard">
+            <div class="timer-display">
+                <div class="timer-time" id="timerDisplay">00:00:00</div>
+                <div class="timer-activity" id="timerActivity">No activity selected</div>
+            </div>
+            <div class="timer-controls">
+                <button class="btn-control btn-start" id="startBtn" title="Start">▶</button>
+                <button class="btn-control btn-pause" id="pauseBtn" title="Pause" disabled>⏸</button>
+                <button class="btn-control btn-stop" id="stopBtn" title="Stop" disabled>⏹</button>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="card">
+            <div class="log-header">
+                <div class="card-title">Activity Log</div>
+                <button class="btn btn-ghost btn-clear" id="clearLogBtn">Clear All</button>
+            </div>
+            <ul class="log-list" id="logList">
+                <li class="log-empty">No activities recorded yet</li>
+            </ul>
+        </div>
+
+        <footer>
+            <div class="privacy-badge">All data stored locally on your device</div>
+        </footer>
+    </div>
+
+    <!-- Manage Activities Modal -->
+    <div class="modal-overlay" id="manageModal">
+        <div class="modal">
+            <h2>Manage Activities</h2>
+            <ul class="activity-list" id="activityList"></ul>
+            <input type="text" class="modal-input" id="newActivityInput" placeholder="New activity name...">
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="closeModalBtn">Close</button>
+                <button class="btn btn-primary" id="addActivityBtn">Add Activity</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // DATA MANAGEMENT
+        // ============================================
+        
+        const STORAGE_KEYS = {
+            ACTIVITIES: 'activityTimer_activities',
+            LOG: 'activityTimer_log'
+        };
+
+        const DEFAULT_COLORS = [
+            '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', 
+            '#f97316', '#eab308', '#22c55e', '#14b8a6',
+            '#06b6d4', '#3b82f6'
+        ];
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function getActivities() {
+            const data = localStorage.getItem(STORAGE_KEYS.ACTIVITIES);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveActivities(activities) {
+            localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
+        }
+
+        function addActivity(name) {
+            const activities = getActivities();
+            const colorIndex = activities.length % DEFAULT_COLORS.length;
+            const newActivity = {
+                id: generateId(),
+                name: name.trim(),
+                color: DEFAULT_COLORS[colorIndex]
+            };
+            activities.push(newActivity);
+            saveActivities(activities);
+            return newActivity;
+        }
+
+        function deleteActivity(id) {
+            const activities = getActivities().filter(a => a.id !== id);
+            saveActivities(activities);
+        }
+
+        function getActivityById(id) {
+            return getActivities().find(a => a.id === id);
+        }
+
+        function getLog() {
+            const data = localStorage.getItem(STORAGE_KEYS.LOG);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveLog(log) {
+            localStorage.setItem(STORAGE_KEYS.LOG, JSON.stringify(log));
+        }
+
+        function addLogEntry(activityId, duration) {
+            const log = getLog();
+            log.unshift({
+                id: generateId(),
+                activityId: activityId,
+                duration: duration,
+                date: new Date().toISOString()
+            });
+            saveLog(log);
+        }
+
+        function clearLog() {
+            saveLog([]);
+        }
+
+        // ============================================
+        // TIMER ENGINE
+        // ============================================
+
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+        let isRunning = false;
+        let isPaused = false;
+        let currentActivityId = null;
+
+        function formatTime(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return [hours, minutes, seconds]
+                .map(v => v.toString().padStart(2, '0'))
+                .join(':');
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timerDisplay').textContent = formatTime(elapsedSeconds);
+        }
+
+        function startTimer() {
+            if (!currentActivityId) {
+                alert('Please select an activity first');
+                return;
+            }
+
+            isRunning = true;
+            isPaused = false;
+            
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+
+            updateControlButtons();
+            document.getElementById('timerCard').classList.add('timer-running');
+        }
+
+        function pauseTimer() {
+            if (!isRunning) return;
+            
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+                clearInterval(timerInterval);
+            } else {
+                timerInterval = setInterval(() => {
+                    elapsedSeconds++;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+
+            updateControlButtons();
+        }
+
+        function stopTimer() {
+            if (!isRunning && elapsedSeconds === 0) return;
+
+            clearInterval(timerInterval);
+            
+            if (elapsedSeconds > 0 && currentActivityId) {
+                addLogEntry(currentActivityId, elapsedSeconds);
+                renderLog();
+            }
+
+            elapsedSeconds = 0;
+            isRunning = false;
+            isPaused = false;
+            
+            updateTimerDisplay();
+            updateControlButtons();
+            document.getElementById('timerCard').classList.remove('timer-running');
+        }
+
+        function updateControlButtons() {
+            const startBtn = document.getElementById('startBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            startBtn.disabled = isRunning && !isPaused;
+            pauseBtn.disabled = !isRunning;
+            stopBtn.disabled = !isRunning && elapsedSeconds === 0;
+
+            // Update pause button appearance
+            pauseBtn.textContent = isPaused ? '▶' : '⏸';
+            pauseBtn.title = isPaused ? 'Resume' : 'Pause';
+        }
+
+        // ============================================
+        // UI RENDERING
+        // ============================================
+
+        function renderActivitySelect() {
+            const select = document.getElementById('activitySelect');
+            const activities = getActivities();
+            
+            select.innerHTML = '<option value="">Select an activity...</option>';
+            
+            activities.forEach(activity => {
+                const option = document.createElement('option');
+                option.value = activity.id;
+                option.textContent = activity.name;
+                option.style.color = activity.color;
+                select.appendChild(option);
+            });
+
+            // Restore current selection
+            if (currentActivityId) {
+                select.value = currentActivityId;
+            }
+        }
+
+        function renderActivityList() {
+            const list = document.getElementById('activityList');
+            const activities = getActivities();
+
+            if (activities.length === 0) {
+                list.innerHTML = '<li class="log-empty" style="padding: 20px 0;">No activities yet. Add one below!</li>';
+                return;
+            }
+
+            list.innerHTML = activities.map(activity => `
+                <li class="activity-item">
+                    <div class="activity-color" style="background: ${activity.color}"></div>
+                    <span class="activity-name">${escapeHtml(activity.name)}</span>
+                    <button class="btn-delete" data-id="${activity.id}" title="Delete">×</button>
+                </li>
+            `).join('');
+
+            // Add delete handlers
+            list.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (confirm('Delete this activity?')) {
+                        deleteActivity(btn.dataset.id);
+                        renderActivityList();
+                        renderActivitySelect();
+                        
+                        // Clear selection if deleted activity was selected
+                        if (currentActivityId === btn.dataset.id) {
+                            currentActivityId = null;
+                            document.getElementById('activitySelect').value = '';
+                            updateActivityDisplay();
+                        }
+                    }
+                });
+            });
+        }
+
+        function renderLog() {
+            const list = document.getElementById('logList');
+            const log = getLog();
+            const activities = getActivities();
+
+            if (log.length === 0) {
+                list.innerHTML = '<li class="log-empty">No activities recorded yet</li>';
+                return;
+            }
+
+            list.innerHTML = log.map(entry => {
+                const activity = activities.find(a => a.id === entry.activityId) || {
+                    name: 'Unknown',
+                    color: '#666'
+                };
+                const date = new Date(entry.date);
+                const dateStr = date.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <li class="log-item">
+                        <div class="log-color" style="background: ${activity.color}"></div>
+                        <div class="log-info">
+                            <div class="log-activity">${escapeHtml(activity.name)}</div>
+                            <div class="log-date">${dateStr}</div>
+                        </div>
+                        <div class="log-duration">${formatTime(entry.duration)}</div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function updateActivityDisplay() {
+            const activity = getActivityById(currentActivityId);
+            const display = document.getElementById('timerActivity');
+            
+            if (activity) {
+                display.textContent = activity.name;
+                display.style.color = activity.color;
+            } else {
+                display.textContent = 'No activity selected';
+                display.style.color = '';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+
+        function setupEventListeners() {
+            // Activity selector
+            document.getElementById('activitySelect').addEventListener('change', (e) => {
+                currentActivityId = e.target.value || null;
+                updateActivityDisplay();
+            });
+
+            // Timer controls
+            document.getElementById('startBtn').addEventListener('click', startTimer);
+            document.getElementById('pauseBtn').addEventListener('click', pauseTimer);
+            document.getElementById('stopBtn').addEventListener('click', stopTimer);
+
+            // Manage activities modal
+            const modal = document.getElementById('manageModal');
+            
+            document.getElementById('manageBtn').addEventListener('click', () => {
+                renderActivityList();
+                modal.classList.add('active');
+                document.getElementById('newActivityInput').focus();
+            });
+
+            document.getElementById('closeModalBtn').addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+
+            // Add new activity
+            const addActivity_handler = () => {
+                const input = document.getElementById('newActivityInput');
+                const name = input.value.trim();
+                
+                if (name) {
+                    addActivity(name);
+                    input.value = '';
+                    renderActivityList();
+                    renderActivitySelect();
+                }
+            };
+
+            document.getElementById('addActivityBtn').addEventListener('click', addActivity_handler);
+            document.getElementById('newActivityInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addActivity_handler();
+                }
+            });
+
+            // Clear log
+            document.getElementById('clearLogBtn').addEventListener('click', () => {
+                if (confirm('Clear all activity log entries?')) {
+                    clearLog();
+                    renderLog();
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Don't trigger shortcuts when typing in input
+                if (e.target.tagName === 'INPUT') return;
+
+                switch(e.code) {
+                    case 'Space':
+                        e.preventDefault();
+                        if (isRunning) {
+                            pauseTimer();
+                        } else {
+                            startTimer();
+                        }
+                        break;
+                    case 'Escape':
+                        if (isRunning) stopTimer();
+                        break;
+                }
+            });
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        function init() {
+            // Create some default activities if none exist
+            if (getActivities().length === 0) {
+                addActivity('Reading');
+                addActivity('Practice');
+                addActivity('Exercise');
+            }
+
+            renderActivitySelect();
+            renderLog();
+            updateControlButtons();
+            setupEventListeners();
+
+            // Warn before leaving with active timer
+            window.addEventListener('beforeunload', (e) => {
+                if (isRunning) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        }
+
+        // Start the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
