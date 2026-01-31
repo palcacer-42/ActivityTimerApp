@@ -486,22 +486,7 @@
             content: "🔒";
         }
 
-        /* Animations */
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .timer-running .timer-time {
-            animation: pulse 2s ease-in-out infinite;
-        }
+        /* Animations - disabled for iOS compatibility */
 
         /* Responsive */
         @media (max-width: 400px) {
