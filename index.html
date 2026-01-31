@@ -301,6 +301,7 @@
             font-weight: 500;
             color: var(--accent-secondary);
             font-variant-numeric: tabular-nums;
+            margin-right: 8px;
         }
 
         .log-empty {
@@ -656,6 +657,11 @@
             saveLog([]);
         }
 
+        function deleteLogEntry(id) {
+            const log = getLog().filter(entry => entry.id !== id);
+            saveLog(log);
+        }
+
         // ============================================
         // CSV EXPORT / IMPORT
         // ============================================
@@ -966,9 +972,20 @@
                             <div class="log-date">${dateStr}</div>
                         </div>
                         <div class="log-duration">${formatTime(entry.duration)}</div>
+                        <button class="btn-delete log-delete" data-id="${entry.id}" title="Delete entry">×</button>
                     </li>
                 `;
             }).join('');
+
+            // Add delete handlers for log entries
+            list.querySelectorAll('.log-delete').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (confirm('Delete this log entry?')) {
+                        deleteLogEntry(btn.dataset.id);
+                        renderLog();
+                    }
+                });
+            });
         }
 
         function updateActivityDisplay() {
