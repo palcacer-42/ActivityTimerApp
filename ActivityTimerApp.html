@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Privacy-first activity timer. Track your reading, practice, and other activities without data collection.">
+    <meta name="description"
+        content="Privacy-first activity timer. Track your reading, practice, and other activities without data collection.">
     <title>Activity Timer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,7 +36,7 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
-            background-image: 
+            background-image:
                 radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
             min-height: 100vh;
@@ -324,6 +326,26 @@
             padding: 6px 12px;
         }
 
+        .log-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        .btn-sm:hover {
+            transform: translateY(-1px);
+        }
+
+        .hidden-input {
+            display: none;
+        }
+
         /* Modal */
         .modal-overlay {
             position: fixed;
@@ -465,8 +487,15 @@
 
         /* Animations */
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .timer-running .timer-time {
@@ -478,7 +507,7 @@
             .timer-time {
                 font-size: 3rem;
             }
-            
+
             .btn-control {
                 width: 56px;
                 height: 56px;
@@ -486,6 +515,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -521,7 +551,12 @@
         <div class="card">
             <div class="log-header">
                 <div class="card-title">Activity Log</div>
-                <button class="btn btn-ghost btn-clear" id="clearLogBtn">Clear All</button>
+                <div class="log-actions">
+                    <button class="btn btn-ghost btn-sm" id="exportLogBtn" title="Export CSV">📥</button>
+                    <button class="btn btn-ghost btn-sm" id="importLogBtn" title="Import CSV">📤</button>
+                    <button class="btn btn-ghost btn-clear" id="clearLogBtn">Clear All</button>
+                </div>
+                <input type="file" id="importFileInput" class="hidden-input" accept=".csv">
             </div>
             <ul class="log-list" id="logList">
                 <li class="log-empty">No activities recorded yet</li>
@@ -550,14 +585,14 @@
         // ============================================
         // DATA MANAGEMENT
         // ============================================
-        
+
         const STORAGE_KEYS = {
             ACTIVITIES: 'activityTimer_activities',
             LOG: 'activityTimer_log'
         };
 
         const DEFAULT_COLORS = [
-            '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', 
+            '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
             '#f97316', '#eab308', '#22c55e', '#14b8a6',
             '#06b6d4', '#3b82f6'
         ];
@@ -622,6 +657,114 @@
         }
 
         // ============================================
+        // CSV EXPORT / IMPORT
+        // ============================================
+
+        function exportLogToCSV() {
+            const log = getLog();
+            const activities = getActivities();
+
+            if (log.length === 0) {
+                alert('No entries to export');
+                return;
+            }
+
+            // CSV header
+            const headers = ['Date', 'Activity', 'Duration (seconds)', 'Duration (formatted)'];
+
+            // CSV rows
+            const rows = log.map(entry => {
+                const activity = activities.find(a => a.id === entry.activityId) || { name: 'Unknown' };
+                const date = new Date(entry.date).toISOString();
+                return [
+                    date,
+                    `"${activity.name.replace(/"/g, '""')}"`,
+                    entry.duration,
+                    formatTime(entry.duration)
+                ].join(',');
+            });
+
+            const csv = [headers.join(','), ...rows].join('\n');
+
+            // Download file
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            link.href = URL.createObjectURL(blob);
+            link.download = `activity_log_${date}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function importLogFromCSV(file) {
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n').filter(line => line.trim());
+
+                    if (lines.length < 2) {
+                        alert('CSV file is empty or invalid');
+                        return;
+                    }
+
+                    const activities = getActivities();
+                    const existingLog = getLog();
+                    const newEntries = [];
+
+                    // Skip header, parse data rows
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i];
+                        // Simple CSV parsing (handles quoted fields)
+                        const matches = line.match(/("[^"]*"|[^,]+)/g);
+
+                        if (matches && matches.length >= 3) {
+                            const dateStr = matches[0].replace(/^"|"$/g, '');
+                            const activityName = matches[1].replace(/^"|"$/g, '').replace(/""/g, '"');
+                            const duration = parseInt(matches[2], 10);
+
+                            if (isNaN(duration) || duration < 0) continue;
+
+                            // Find or create activity
+                            let activity = activities.find(a => a.name.toLowerCase() === activityName.toLowerCase());
+                            if (!activity) {
+                                activity = addActivity(activityName);
+                            }
+
+                            newEntries.push({
+                                id: generateId(),
+                                activityId: activity.id,
+                                duration: duration,
+                                date: new Date(dateStr).toISOString() || new Date().toISOString()
+                            });
+                        }
+                    }
+
+                    if (newEntries.length === 0) {
+                        alert('No valid entries found in CSV');
+                        return;
+                    }
+
+                    // Merge with existing log (new entries first)
+                    const mergedLog = [...newEntries, ...existingLog];
+                    // Sort by date descending
+                    mergedLog.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    saveLog(mergedLog);
+                    renderActivitySelect();
+                    renderLog();
+
+                    alert(`Imported ${newEntries.length} entries successfully!`);
+                } catch (err) {
+                    alert('Error parsing CSV file: ' + err.message);
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        // ============================================
         // TIMER ENGINE
         // ============================================
 
@@ -645,28 +788,25 @@
         }
 
         function startTimer() {
-            if (!currentActivityId) {
-                alert('Please select an activity first');
-                return;
-            }
-
+            // Free mode: allow starting without activity selected
             isRunning = true;
             isPaused = false;
-            
+
             timerInterval = setInterval(() => {
                 elapsedSeconds++;
                 updateTimerDisplay();
             }, 1000);
 
             updateControlButtons();
+            updateActivityDisplay(); // Update display for free mode
             document.getElementById('timerCard').classList.add('timer-running');
         }
 
         function pauseTimer() {
             if (!isRunning) return;
-            
+
             isPaused = !isPaused;
-            
+
             if (isPaused) {
                 clearInterval(timerInterval);
             } else {
@@ -683,18 +823,41 @@
             if (!isRunning && elapsedSeconds === 0) return;
 
             clearInterval(timerInterval);
-            
-            if (elapsedSeconds > 0 && currentActivityId) {
-                addLogEntry(currentActivityId, elapsedSeconds);
-                renderLog();
+
+            if (elapsedSeconds > 0) {
+                let activityId = currentActivityId;
+
+                // Free mode: prompt for activity name if none selected
+                if (!activityId) {
+                    const name = prompt('Name this activity:');
+                    if (name && name.trim()) {
+                        // Check if activity with this name exists
+                        const existing = getActivities().find(
+                            a => a.name.toLowerCase() === name.trim().toLowerCase()
+                        );
+                        if (existing) {
+                            activityId = existing.id;
+                        } else {
+                            const newActivity = addActivity(name.trim());
+                            activityId = newActivity.id;
+                            renderActivitySelect();
+                        }
+                    }
+                }
+
+                if (activityId) {
+                    addLogEntry(activityId, elapsedSeconds);
+                    renderLog();
+                }
             }
 
             elapsedSeconds = 0;
             isRunning = false;
             isPaused = false;
-            
+
             updateTimerDisplay();
             updateControlButtons();
+            updateActivityDisplay(); // Reset display
             document.getElementById('timerCard').classList.remove('timer-running');
         }
 
@@ -719,9 +882,9 @@
         function renderActivitySelect() {
             const select = document.getElementById('activitySelect');
             const activities = getActivities();
-            
+
             select.innerHTML = '<option value="">Select an activity...</option>';
-            
+
             activities.forEach(activity => {
                 const option = document.createElement('option');
                 option.value = activity.id;
@@ -760,7 +923,7 @@
                         deleteActivity(btn.dataset.id);
                         renderActivityList();
                         renderActivitySelect();
-                        
+
                         // Clear selection if deleted activity was selected
                         if (currentActivityId === btn.dataset.id) {
                             currentActivityId = null;
@@ -788,8 +951,8 @@
                     color: '#666'
                 };
                 const date = new Date(entry.date);
-                const dateStr = date.toLocaleDateString('en-US', { 
-                    month: 'short', 
+                const dateStr = date.toLocaleDateString('en-US', {
+                    month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
@@ -811,10 +974,13 @@
         function updateActivityDisplay() {
             const activity = getActivityById(currentActivityId);
             const display = document.getElementById('timerActivity');
-            
+
             if (activity) {
                 display.textContent = activity.name;
                 display.style.color = activity.color;
+            } else if (isRunning) {
+                display.textContent = 'Free mode';
+                display.style.color = 'var(--accent-secondary)';
             } else {
                 display.textContent = 'No activity selected';
                 display.style.color = '';
@@ -845,7 +1011,7 @@
 
             // Manage activities modal
             const modal = document.getElementById('manageModal');
-            
+
             document.getElementById('manageBtn').addEventListener('click', () => {
                 renderActivityList();
                 modal.classList.add('active');
@@ -866,7 +1032,7 @@
             const addActivity_handler = () => {
                 const input = document.getElementById('newActivityInput');
                 const name = input.value.trim();
-                
+
                 if (name) {
                     addActivity(name);
                     input.value = '';
@@ -890,12 +1056,27 @@
                 }
             });
 
+            // Export CSV
+            document.getElementById('exportLogBtn').addEventListener('click', exportLogToCSV);
+
+            // Import CSV
+            const importInput = document.getElementById('importFileInput');
+            document.getElementById('importLogBtn').addEventListener('click', () => {
+                importInput.click();
+            });
+            importInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    importLogFromCSV(e.target.files[0]);
+                    e.target.value = ''; // Reset so same file can be imported again
+                }
+            });
+
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
                 // Don't trigger shortcuts when typing in input
                 if (e.target.tagName === 'INPUT') return;
 
-                switch(e.code) {
+                switch (e.code) {
                     case 'Space':
                         e.preventDefault();
                         if (isRunning) {
@@ -941,4 +1122,5 @@
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
+
 </html>
